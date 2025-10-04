@@ -66,8 +66,8 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         if let button = statusItem?.button {
             updateButtonIcon()
-            button.action = #selector(toggleMicrophone)
-            button.target = self
+                button.action = #selector(toggleMicrophone)
+                button.target = self
         }
         
         // Создаем меню
@@ -279,25 +279,34 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         panel.contentView = blurEffect
         
-        // Создаем динамическую иконку микрофона (центрированную)
-        let iconX = (plateWidth - iconWidth) / 2
-        let iconY = (plateHeight - iconHeight) / 2
-        let iconView = NSImageView(frame: NSRect(x: iconX, y: iconY, width: iconWidth, height: iconHeight))
+        // Создаем фиксированный контейнер для иконки
+        let iconContainerSize = min(iconWidth, iconHeight) // Квадратный контейнер
+        let iconX = (plateWidth - iconContainerSize) / 2
+        let iconY = (plateHeight - iconContainerSize) / 2
         
-        // Создаем растровое изображение нужного размера
+        // Создаем контейнер-родитель с фиксированным размером
+        let iconContainer = NSView(frame: NSRect(x: iconX, y: iconY, width: iconContainerSize, height: iconContainerSize))
+        iconContainer.wantsLayer = true
+        iconContainer.layer?.backgroundColor = NSColor.clear.cgColor
+        
+        // Создаем NSImageView внутри контейнера
+        let iconView = NSImageView(frame: NSRect(x: 0, y: 0, width: iconContainerSize, height: iconContainerSize))
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        iconView.imageAlignment = .alignCenter
+        
+        // Создаем иконку с фиксированным размером
         let micImage = NSImage(systemSymbolName: isMicrophoneMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
-        let resizedImage = NSImage(size: NSSize(width: iconWidth, height: iconHeight))
         
-        resizedImage.lockFocus()
-        micImage?.draw(in: NSRect(x: 0, y: 0, width: iconWidth, height: iconHeight))
-        resizedImage.unlockFocus()
-        
-        iconView.image = resizedImage
+        // Устанавливаем изображение напрямую
+        iconView.image = micImage
         iconView.contentTintColor = isMicrophoneMuted ? NSColor.systemRed : NSColor.systemGreen
         iconView.wantsLayer = true
         iconView.layer?.shouldRasterize = true
         iconView.layer?.rasterizationScale = NSScreen.main?.backingScaleFactor ?? 1.0
-        blurEffect.addSubview(iconView)
+        
+        // Добавляем iconView в контейнер, а контейнер в blurEffect
+        iconContainer.addSubview(iconView)
+        blurEffect.addSubview(iconContainer)
         
         // Показываем панель
         panel.makeKeyAndOrderFront(nil)
@@ -318,11 +327,11 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         let plateWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            
         plateWindow.level = NSWindow.Level.floating
         plateWindow.backgroundColor = NSColor.clear
         plateWindow.isOpaque = false
