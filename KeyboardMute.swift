@@ -127,6 +127,9 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         // Показываем уведомление
         showNotification()
         
+        // Отправляем клавишу M в окно конференции Толк
+        sendMToKtalkConference()
+        
         print("Microphone toggled: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
     }
     
@@ -424,6 +427,157 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         notification.soundName = nil
         
         NSUserNotificationCenter.default.deliver(notification)
+    }
+    
+    func sendMToKtalkConference() {
+        print("🎤 Отправка клавиши M в окно конференции Толк...")
+        
+        // Находим приложение Толк
+        let runningApps = NSWorkspace.shared.runningApplications
+        let ktalkApp = runningApps.first { app in
+            let bundleId = app.bundleIdentifier ?? ""
+            let appName = app.localizedName ?? ""
+            return bundleId.lowercased().contains("ktalk") || 
+                   bundleId.lowercased().contains("m-pm") ||
+                   appName.lowercased().contains("толк") || 
+                   appName.lowercased().contains("ktalk")
+        }
+        
+        guard let app = ktalkApp else {
+            print("❌ Приложение Толк не найдено")
+            return
+        }
+        
+        print("✅ Найдено приложение Толк: \(app.localizedName ?? "Unknown") (PID: \(app.processIdentifier))")
+        
+        // Получаем окна приложения
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        var windowsRef: CFTypeRef?
+        let windowsResult = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
+        
+        guard windowsResult == .success, let windows = windowsRef as? [AXUIElement] else {
+            print("❌ Не удалось получить окна приложения")
+            return
+        }
+        
+        // Ищем окно конференции по уникальным признакам
+        var conferenceWindow: AXUIElement?
+        for window in windows {
+            var titleRef: CFTypeRef?
+            let titleResult = AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleRef)
+            let title = (titleResult == .success) ? (titleRef as? String ?? "") : ""
+            
+            print("🔍 Проверяем окно: \"\(title)\"")
+            
+            // Проверяем наличие кнопок управления конференцией
+            if hasConferenceControlButtons(in: window) {
+                conferenceWindow = window
+                print("✅ Найдено окно конференции по кнопкам управления: \"\(title)\"")
+                break
+            }
+        }
+        
+        guard let window = conferenceWindow else {
+            print("❌ Окно конференции не найдено")
+            return
+        }
+        
+        // Поднимаем окно наверх
+        print("🔄 Поднимаем окно конференции наверх...")
+        AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, true as CFTypeRef)
+        
+        // Активируем приложение
+        app.activate(options: [])
+        
+        // Ждем полсекунды
+        print("⏱️ Ожидание 0.5 секунды...")
+        usleep(500000) // 0.5 секунды
+        
+        // Отправляем клавишу M
+        print("⌨️ Отправка клавиши M...")
+        let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: 46, keyDown: true) // 46 = M key
+        let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: 46, keyDown: false)
+        
+        guard let downEvent = keyDownEvent, let upEvent = keyUpEvent else {
+            print("❌ Не удалось создать события клавиатуры")
+            return
+        }
+        
+        // Отправляем просто клавишу M без модификаторов
+        downEvent.flags = []
+        upEvent.flags = []
+        
+        downEvent.post(tap: .cghidEventTap)
+        usleep(100000) // 0.1 секунды между нажатием и отпусканием
+        upEvent.post(tap: .cghidEventTap)
+        
+        print("✅ Клавиша M отправлена в окно конференции Толк")
+    }
+    
+    func hasConferenceControlButtons(in window: AXUIElement) -> Bool {
+        var microphoneButtonFound = false
+        var cameraButtonFound = false
+        var recordingButtonFound = false
+        
+        // Рекурсивно ищем кнопки управления конференцией
+        findConferenceButtons(in: window, microphoneFound: &microphoneButtonFound, cameraFound: &cameraButtonFound, recordingFound: &recordingButtonFound)
+        
+        // Окно конференции должно иметь кнопки микрофона И камеры
+        let isConferenceWindow = microphoneButtonFound && cameraButtonFound
+        
+        if isConferenceWindow {
+            print("🎯 Найдены кнопки конференции: микрофон=\(microphoneButtonFound), камера=\(cameraButtonFound), запись=\(recordingButtonFound)")
+        }
+        
+        return isConferenceWindow
+    }
+    
+    func findConferenceButtons(in element: AXUIElement, microphoneFound: inout Bool, cameraFound: inout Bool, recordingFound: inout Bool) {
+        // Получаем роль элемента
+        var roleRef: CFTypeRef?
+        let roleResult = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
+        let role = (roleResult == .success) ? (roleRef as? String ?? "unknown") : "unknown"
+        
+        if role == "AXButton" {
+            // Получаем описание элемента
+            var descriptionRef: CFTypeRef?
+            let descResult = AXUIElementCopyAttributeValue(element, kAXDescriptionAttribute as CFString, &descriptionRef)
+            let description = (descResult == .success) ? (descriptionRef as? String ?? "") : ""
+            
+            // Получаем help (tooltip) элемента
+            var helpRef: CFTypeRef?
+            let helpResult = AXUIElementCopyAttributeValue(element, kAXHelpAttribute as CFString, &helpRef)
+            let help = (helpResult == .success) ? (helpRef as? String ?? "") : ""
+            
+            // Получаем значение элемента
+            var valueRef: CFTypeRef?
+            let valueResult = AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef)
+            let value = (valueResult == .success) ? (valueRef as? String ?? "") : ""
+            
+            let allText = "\(description) \(help) \(value)".lowercased()
+            
+            // Проверяем на кнопки управления конференцией
+            if allText.contains("микрофон") || allText.contains("microphone") || allText.contains("mute") || allText.contains("unmute") {
+                microphoneFound = true
+                print("🎤 Найдена кнопка микрофона: '\(description)'")
+            } else if allText.contains("камер") || allText.contains("camera") || allText.contains("video") {
+                cameraFound = true
+                print("📹 Найдена кнопка камеры: '\(description)'")
+            } else if allText.contains("запис") || allText.contains("record") || allText.contains("recording") {
+                recordingFound = true
+                print("🎯 Найдена кнопка записи: '\(description)'")
+            }
+        }
+        
+        // Рекурсивно ищем в дочерних элементах
+        var childrenRef: CFTypeRef?
+        let childrenResult = AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef)
+        
+        if childrenResult == .success, let children = childrenRef as? [AXUIElement] {
+            for child in children {
+                findConferenceButtons(in: child, microphoneFound: &microphoneFound, cameraFound: &cameraFound, recordingFound: &recordingFound)
+            }
+        }
     }
     
     @objc func quitApp() {
