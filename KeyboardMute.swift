@@ -21,7 +21,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         // Устанавливаем обработчик событий
         setupEventHandling()
         
-        print("KeyboardMute запущен! Используйте Cmd+Shift+M для переключения микрофона.")
+        print("KeyboardMute запущен! Используйте Shift+Cmd+Z для переключения микрофона.")
     }
     
     func setupEventHandling() {
@@ -92,7 +92,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     }
     
     func registerGlobalHotkey() {
-        let keyCode: UInt32 = 46 // M key
+        let keyCode: UInt32 = 6 // Z key
         let modifiers: UInt32 = UInt32(cmdKey | shiftKey)
         
         let hotKeyID = EventHotKeyID(signature: 0x4D555445, id: 1) // "MUTE" as OSType
@@ -494,7 +494,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         usleep(500000) // 0.5 секунды
         
         // Отправляем клавишу M
-        print("⌨️ Отправка клавиши M...")
+        print("⌨️ Отправка клавиши M в Толк...")
         let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: 46, keyDown: true) // 46 = M key
         let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: 46, keyDown: false)
         
