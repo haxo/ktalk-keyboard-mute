@@ -143,13 +143,13 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     }
     
     func showMicrophonePlate() {
-        // Подход 1: NSVisualEffectView (текущий)
-        createVisualEffectPlate()
+        // Подход 4: NSStatusBar (стабильный)
+        createStatusBarPlate()
         
-        // Если не работает, раскомментировать другие подходы:
-        // createPanelPlate()        // Подход 2: NSPanel
-        // createCoreAnimationPlate() // Подход 3: Core Animation
-        // createStatusBarPlate()    // Подход 4: NSStatusBar
+        // Другие подходы вызывают ошибки:
+        // createVisualEffectPlate()  // Подход 1: NSVisualEffectView - segmentation fault
+        // createPanelPlate()        // Подход 2: NSPanel - может вызывать ошибки
+        // createCoreAnimationPlate() // Подход 3: Core Animation - может вызывать ошибки
     }
     
     func createVisualEffectPlate() {
