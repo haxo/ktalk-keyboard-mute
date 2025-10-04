@@ -24,6 +24,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         print("KeyboardMute запущен! Используйте Shift+Cmd+Z для переключения микрофона.")
     }
     
+    
     func setupEventHandling() {
         // Создаем обработчик событий для горячих клавиш
         _ = (1 << kEventClassKeyboard) | (1 << kEventClassApplication)
@@ -298,7 +299,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         // Устанавливаем изображение напрямую
         iconView.image = micImage
-        iconView.contentTintColor = NSColor.white
+        iconView.contentTintColor = NSColor.red
         iconView.wantsLayer = true
         iconView.layer?.shouldRasterize = true
         iconView.layer?.rasterizationScale = NSScreen.main?.backingScaleFactor ?? 1.0
