@@ -132,13 +132,9 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     
     func updateButtonIcon() {
         if let button = statusItem?.button {
-            if isMicrophoneMuted {
-                button.image = NSImage(systemSymbolName: "mic.slash", accessibilityDescription: "Microphone Muted")
-                button.toolTip = "Microphone Muted - Click to unmute"
-            } else {
-                button.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "Microphone Active")
-                button.toolTip = "Microphone Active - Click to mute"
-            }
+            // Всегда показываем микрофон включен, независимо от состояния
+            button.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "Microphone")
+            button.toolTip = nil
         }
     }
     
@@ -294,12 +290,12 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         iconView.imageScaling = .scaleProportionallyUpOrDown
         iconView.imageAlignment = .alignCenter
         
-        // Создаем иконку с фиксированным размером
-        let micImage = NSImage(systemSymbolName: isMicrophoneMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
+        // Создаем иконку с фиксированным размером (всегда микрофон включен)
+        let micImage = NSImage(systemSymbolName: "mic", accessibilityDescription: nil)
         
         // Устанавливаем изображение напрямую
         iconView.image = micImage
-        iconView.contentTintColor = isMicrophoneMuted ? NSColor.systemRed : NSColor.systemGreen
+        iconView.contentTintColor = NSColor.white
         iconView.wantsLayer = true
         iconView.layer?.shouldRasterize = true
         iconView.layer?.rasterizationScale = NSScreen.main?.backingScaleFactor ?? 1.0
