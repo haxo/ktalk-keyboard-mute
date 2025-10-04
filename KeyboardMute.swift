@@ -223,8 +223,28 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         print("🎤 Creating NSPanel plate: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
         
+        // Динамический расчет размеров на основе разрешения монитора
+        let screenWidth = mainScreen.frame.width
+        let screenHeight = mainScreen.frame.height
+        let minDimension = min(screenWidth, screenHeight)
+        
+        // Плашка составляет 15% от меньшей стороны экрана
+        let plateSize = minDimension * 0.15
+        let plateWidth = plateSize
+        let plateHeight = plateSize
+        
+        // Иконка составляет 60% от размера плашки (уменьшена в 1.5 раза)
+        let iconSize = plateSize * 0.6
+        let iconWidth = iconSize
+        let iconHeight = iconSize
+        
+        // Отступы составляют 5% от размера плашки
+        let margin = plateSize * 0.05
+        
+        print("📐 Screen: \(Int(screenWidth))x\(Int(screenHeight)), Plate: \(Int(plateSize))x\(Int(plateSize)), Icon: \(Int(iconSize))x\(Int(iconSize))")
+        
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 120, height: 120),
+            contentRect: NSRect(x: 0, y: 0, width: plateWidth, height: plateHeight),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -234,7 +254,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         panel.level = NSWindow.Level.floating
         panel.backgroundColor = NSColor.clear
         panel.isOpaque = false
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary]
         panel.animationBehavior = .utilityWindow
@@ -242,56 +262,53 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         // Центрируем на экране
         let screenFrame = mainScreen.visibleFrame
-        let x = screenFrame.origin.x + (screenFrame.width - 120) / 2
-        let y = screenFrame.origin.y + (screenFrame.height - 120) / 2
+        let x = screenFrame.origin.x + (screenFrame.width - plateWidth) / 2
+        let y = screenFrame.origin.y + (screenFrame.height - plateHeight) / 2
         panel.setFrameOrigin(NSPoint(x: x, y: y))
         
-        // Создаем контент с размытым фоном
-        let contentView = NSView(frame: panel.contentView!.bounds)
-        contentView.wantsLayer = true
-        contentView.layer?.cornerRadius = 25
-        contentView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.8).cgColor
-        contentView.layer?.masksToBounds = true
-        
-        // Добавляем размытие
-        let blurEffect = NSVisualEffectView(frame: contentView.bounds)
+        // Создаем контент только с размытым фоном (без черного фона)
+        let blurEffect = NSVisualEffectView(frame: panel.contentView!.bounds)
         blurEffect.material = .hudWindow
         blurEffect.blendingMode = .behindWindow
         blurEffect.state = .active
         blurEffect.wantsLayer = true
-        blurEffect.layer?.cornerRadius = 25
-        contentView.addSubview(blurEffect)
+        blurEffect.layer?.cornerRadius = 30
+        blurEffect.layer?.masksToBounds = true
+        blurEffect.layer?.shouldRasterize = true
+        blurEffect.layer?.rasterizationScale = NSScreen.main?.backingScaleFactor ?? 1.0
         
-        panel.contentView = contentView
+        panel.contentView = blurEffect
         
-        // Создаем большую иконку микрофона
-        let iconView = NSImageView(frame: NSRect(x: 30, y: 30, width: 60, height: 60))
-        iconView.image = NSImage(systemSymbolName: isMicrophoneMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
-        iconView.image?.size = NSSize(width: 60, height: 60)
+        // Создаем динамическую иконку микрофона (центрированную)
+        let iconX = (plateWidth - iconWidth) / 2
+        let iconY = (plateHeight - iconHeight) / 2
+        let iconView = NSImageView(frame: NSRect(x: iconX, y: iconY, width: iconWidth, height: iconHeight))
+        
+        // Создаем растровое изображение нужного размера
+        let micImage = NSImage(systemSymbolName: isMicrophoneMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
+        let resizedImage = NSImage(size: NSSize(width: iconWidth, height: iconHeight))
+        
+        resizedImage.lockFocus()
+        micImage?.draw(in: NSRect(x: 0, y: 0, width: iconWidth, height: iconHeight))
+        resizedImage.unlockFocus()
+        
+        iconView.image = resizedImage
         iconView.contentTintColor = isMicrophoneMuted ? NSColor.systemRed : NSColor.systemGreen
-        contentView.addSubview(iconView)
+        iconView.wantsLayer = true
+        iconView.layer?.shouldRasterize = true
+        iconView.layer?.rasterizationScale = NSScreen.main?.backingScaleFactor ?? 1.0
+        blurEffect.addSubview(iconView)
         
         // Показываем панель
         panel.makeKeyAndOrderFront(nil)
         
-        // Анимация появления
-        panel.alphaValue = 0.0
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            panel.animator().alphaValue = 1.0
-        })
+        // Простое появление без анимации
+        panel.alphaValue = 1.0
         
         // Скрываем панель через 1.5 секунды
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            NSAnimationContext.runAnimationGroup({ context in
-                context.duration = 0.3
-                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
-                panel.animator().alphaValue = 0.0
-            }) {
-                panel.close()
-                print("🎤 NSPanel plate closed")
-            }
+            panel.close()
+            print("🎤 NSPanel plate closed")
         }
     }
     
