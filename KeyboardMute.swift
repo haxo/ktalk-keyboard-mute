@@ -26,7 +26,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     
     func setupEventHandling() {
         // Создаем обработчик событий для горячих клавиш
-        let eventMask = (1 << kEventClassKeyboard) | (1 << kEventClassApplication)
+        _ = (1 << kEventClassKeyboard) | (1 << kEventClassApplication)
         InstallEventHandler(
             GetApplicationEventTarget(),
             { (nextHandler, theEvent, userData) -> OSStatus in
@@ -42,7 +42,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     
     func handleHotKeyEvent(_ nextHandler: EventHandlerCallRef?, _ theEvent: EventRef?) -> OSStatus {
         var hotKeyID = EventHotKeyID()
-        var result = GetEventParameter(
+        let result = GetEventParameter(
             theEvent!,
             OSType(kEventParamDirectObject),
             OSType(typeEventHotKeyID),
@@ -238,7 +238,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         let iconHeight = iconSize
         
         // Отступы составляют 5% от размера плашки
-        let margin = plateSize * 0.05
+        _ = plateSize * 0.05
         
         print("📐 Screen: \(Int(screenWidth))x\(Int(screenHeight)), Plate: \(Int(plateSize))x\(Int(plateSize)), Icon: \(Int(iconSize))x\(Int(iconSize))")
         
