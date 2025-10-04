@@ -143,12 +143,12 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     }
     
     func showMicrophonePlate() {
-        // Подход 4: NSStatusBar (стабильный)
-        createStatusBarPlate()
+        // Подход 2: NSPanel (тестируем)
+        createPanelPlate()
         
-        // Другие подходы вызывают ошибки:
+        // Другие подходы:
         // createVisualEffectPlate()  // Подход 1: NSVisualEffectView - segmentation fault
-        // createPanelPlate()        // Подход 2: NSPanel - может вызывать ошибки
+        // createStatusBarPlate()     // Подход 4: NSStatusBar - не видно плашки
         // createCoreAnimationPlate() // Подход 3: Core Animation - может вызывать ошибки
     }
     
@@ -221,13 +221,16 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     func createPanelPlate() {
         guard let mainScreen = NSScreen.main else { return }
         
+        print("🎤 Creating NSPanel plate: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
+        
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+            contentRect: NSRect(x: 0, y: 0, width: 120, height: 120),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
         
+        // Настройки панели для системного вида
         panel.level = NSWindow.Level.floating
         panel.backgroundColor = NSColor.clear
         panel.isOpaque = false
@@ -235,31 +238,60 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary]
         panel.animationBehavior = .utilityWindow
+        panel.hidesOnDeactivate = false
         
-        // Центрируем
+        // Центрируем на экране
         let screenFrame = mainScreen.visibleFrame
-        let x = screenFrame.origin.x + (screenFrame.width - 100) / 2
-        let y = screenFrame.origin.y + (screenFrame.height - 100) / 2
+        let x = screenFrame.origin.x + (screenFrame.width - 120) / 2
+        let y = screenFrame.origin.y + (screenFrame.height - 120) / 2
         panel.setFrameOrigin(NSPoint(x: x, y: y))
         
-        // Контент
+        // Создаем контент с размытым фоном
         let contentView = NSView(frame: panel.contentView!.bounds)
         contentView.wantsLayer = true
-        contentView.layer?.cornerRadius = 20
-        contentView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor
+        contentView.layer?.cornerRadius = 25
+        contentView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.8).cgColor
+        contentView.layer?.masksToBounds = true
+        
+        // Добавляем размытие
+        let blurEffect = NSVisualEffectView(frame: contentView.bounds)
+        blurEffect.material = .hudWindow
+        blurEffect.blendingMode = .behindWindow
+        blurEffect.state = .active
+        blurEffect.wantsLayer = true
+        blurEffect.layer?.cornerRadius = 25
+        contentView.addSubview(blurEffect)
+        
         panel.contentView = contentView
         
-        // Иконка
-        let iconView = NSImageView(frame: NSRect(x: 20, y: 20, width: 60, height: 60))
+        // Создаем большую иконку микрофона
+        let iconView = NSImageView(frame: NSRect(x: 30, y: 30, width: 60, height: 60))
         iconView.image = NSImage(systemSymbolName: isMicrophoneMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
         iconView.image?.size = NSSize(width: 60, height: 60)
-        iconView.contentTintColor = NSColor.white
+        iconView.contentTintColor = isMicrophoneMuted ? NSColor.systemRed : NSColor.systemGreen
         contentView.addSubview(iconView)
         
+        // Показываем панель
         panel.makeKeyAndOrderFront(nil)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            panel.close()
+        // Анимация появления
+        panel.alphaValue = 0.0
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.2
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 1.0
+        })
+        
+        // Скрываем панель через 1.5 секунды
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.3
+                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                panel.animator().alphaValue = 0.0
+            }) {
+                panel.close()
+                print("🎤 NSPanel plate closed")
+            }
         }
     }
     
@@ -318,32 +350,48 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     
     // Подход 4: NSStatusBar временное уведомление
     func createStatusBarPlate() {
-        // Создаем временное уведомление в статус-баре
+        // Создаем заметную плашку в статус-баре
         if let button = statusItem?.button {
             let originalImage = button.image
             let originalTint = button.contentTintColor
             
-            // Большая иконка
+            print("🎤 Creating plate: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
+            
+            // Большая иконка с ярким цветом
             let plateIcon = NSImage(systemSymbolName: isMicrophoneMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
-            plateIcon?.size = NSSize(width: 32, height: 32)
+            plateIcon?.size = NSSize(width: 40, height: 40)
             button.image = plateIcon
             button.contentTintColor = isMicrophoneMuted ? NSColor.systemRed : NSColor.systemGreen
             
-            // Анимация
-            NSAnimationContext.runAnimationGroup({ context in
-                context.duration = 0.2
-                button.animator().alphaValue = 0.7
-            }) {
-                NSAnimationContext.runAnimationGroup({ context in
-                    context.duration = 0.2
-                    button.animator().alphaValue = 1.0
-                })
+            // Простая анимация пульсации
+            var pulseCount = 0
+            let maxPulses = 6
+            
+            func pulse() {
+                if pulseCount < maxPulses {
+                    NSAnimationContext.runAnimationGroup({ context in
+                        context.duration = 0.15
+                        button.animator().alphaValue = 0.3
+                    }) {
+                        NSAnimationContext.runAnimationGroup({ context in
+                            context.duration = 0.15
+                            button.animator().alphaValue = 1.0
+                        }) {
+                            pulseCount += 1
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                pulse()
+                            }
+                        }
+                    }
+                } else {
+                    // Возвращаем оригинальную иконку
+                    button.image = originalImage
+                    button.contentTintColor = originalTint
+                    print("🎤 Plate animation completed")
+                }
             }
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                button.image = originalImage
-                button.contentTintColor = originalTint
-            }
+            pulse()
         }
     }
     
