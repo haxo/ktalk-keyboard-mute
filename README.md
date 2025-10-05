@@ -10,6 +10,7 @@ A smart macOS application that provides instant microphone control for Ktalk vid
 - 🔄 **State synchronization** - Reads microphone state from Ktalk interface
 - 🎨 **Visual feedback** - Status bar icon and floating notification show microphone status
 - 📱 **Menu bar integration** - Easy access via system tray icon
+- 🎨 **Modern app icon** - Beautiful microphone icon designed for macOS
 - 🔒 **Privacy focused** - No data collection, runs locally on your machine
 
 ## 🚀 Installation
@@ -24,13 +25,13 @@ A smart macOS application that provides instant microphone control for Ktalk vid
 
 2. **Build the application:**
    ```bash
-   chmod +x build.sh
-   ./build.sh
+   chmod +x build_app_bundle.sh
+   ./build_app_bundle.sh
    ```
 
 3. **Run the application:**
    ```bash
-   ./KeyboardMute
+   open KeyboardMute.app
    ```
 
 ### Option 2: Using Xcode
@@ -147,7 +148,11 @@ ktalk-keyboard-mute/
 ├── KeyboardMute.swift          # Main application code
 ├── KeyboardMute.xcodeproj/     # Xcode project file
 ├── KeyboardMute.entitlements   # App sandbox entitlements
-├── build.sh                    # Build script
+├── build_app_bundle.sh         # Build script for app bundle
+├── create_icon_from_mic.sh     # Icon creation script
+├── Assets.xcassets/            # App icons and assets
+├── AppIcon.icns                # Main app icon
+├── free-icon-mic-772252.png    # Source microphone icon
 ├── launch_keyboard_mute.sh     # Launch script for .app bundle
 ├── start_keyboard_mute.sh      # Background launch script
 └── README.md                   # This file
@@ -191,7 +196,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📊 Version History
 
-### v1.2.0 (Current)
+### v1.5.0 (Current)
+- ✅ **New microphone icon** - Beautiful modern icon designed for macOS
+- ✅ **App bundle support** - Full .app bundle with proper icon integration
+- ✅ **Assets.xcassets integration** - Professional icon support for all contexts
+- ✅ **Icon creation tools** - Automated scripts for icon generation
+- ✅ **Enhanced visual polish** - Professional appearance in Finder, Dock, and Launchpad
+
+### v1.4.0
 - ✅ Cleaned and optimized codebase
 - ✅ Improved visual feedback system
 - ✅ Enhanced Ktalk integration

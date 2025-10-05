@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2024-10-05
+
+### Added
+- **New Microphone Icon:** Beautiful modern microphone icon from free-icon-mic-772252.png
+- **Icon Creation Tools:** Automated script `create_icon_from_mic.sh` for icon generation
+- **App Bundle Support:** Full .app bundle with proper icon integration
+- **Assets.xcassets Integration:** Professional icon support for all macOS contexts
+- **Visual Polish:** Enhanced app appearance in Finder, Dock, and Launchpad
+
+### Changed
+- **Build Process:** Updated to use `build_app_bundle.sh` for proper app bundle creation
+- **Icon Management:** Centralized icon creation and management system
+- **Documentation:** Updated README with new icon information and build process
+
+### Technical Details
+- **Icon Source:** free-icon-mic-772252.png converted to all required macOS sizes
+- **Icon Formats:** Generated .icns file and all PNG sizes for Assets.xcassets
+- **Build Scripts:** Enhanced build process with proper app bundle structure
+
 ## [1.4.0] - 2024-12-19
 
 ### Added

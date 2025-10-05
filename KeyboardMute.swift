@@ -138,7 +138,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         let iconWidth = iconSize
         let iconHeight = iconSize
         
-        print("📐 Screen: \(Int(screenWidth))x\(Int(screenHeight)), Plate: \(Int(plateSize))x\(Int(plateSize)), Icon: \(Int(iconSize))x\(Int(iconSize))")
+        // Screen dimensions calculated
         
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: plateWidth, height: plateHeight),
@@ -232,33 +232,25 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         }
         
         guard !ktalkApps.isEmpty else {
-            print("❌ Ktalk application not found")
             return
         }
-        
-        print("✅ Found \(ktalkApps.count) Ktalk application(s)")
         
         // Check all Ktalk applications for conference windows
         var conferenceWindow: AXUIElement?
         var foundApp: NSRunningApplication?
         
         for app in ktalkApps {
-            print("🔍 Checking app: \(app.localizedName ?? "Unknown") (PID: \(app.processIdentifier))")
-            
             // Get application windows
             let appElement = AXUIElementCreateApplication(app.processIdentifier)
             var windowsRef: CFTypeRef?
             let windowsResult = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
             
             guard windowsResult == .success, let windows = windowsRef as? [AXUIElement] else {
-                print("❌ Could not get windows for app: \(app.localizedName ?? "Unknown")")
                 continue
             }
             
             // Check each window for conference control buttons
             for window in windows {
-                print("🔍 Checking window...")
-                
                 // Check for conference control buttons
                 let conferenceResult = hasConferenceControlButtons(in: window)
                 if conferenceResult.isConference {
@@ -280,28 +272,23 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         }
         
         guard let window = conferenceWindow, let app = foundApp else {
-            print("❌ Conference window not found in any Ktalk application")
             return
         }
         
         // Bring window to front
-        print("🔄 Bringing conference window to front...")
         AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, true as CFTypeRef)
         
         // Activate application
         app.activate(options: [])
         
         // Wait half a second
-        print("⏱️ Waiting 0.5 seconds...")
         usleep(500000) // 0.5 seconds
         
         // Send M key
-        print("⌨️ Sending M key to Ktalk...")
         let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: 46, keyDown: true) // 46 = M key
         let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: 46, keyDown: false)
         
         guard let downEvent = keyDownEvent, let upEvent = keyUpEvent else {
-            print("❌ Could not create keyboard events")
             return
         }
         
@@ -312,8 +299,6 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         downEvent.post(tap: .cghidEventTap)
         usleep(100000) // 0.1 seconds between press and release
         upEvent.post(tap: .cghidEventTap)
-        
-        print("✅ M key sent to Ktalk conference window")
     }
     
     func hasConferenceControlButtons(in window: AXUIElement) -> (isConference: Bool, microphoneState: Bool?) {
@@ -340,12 +325,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
             }
         }
         
-        if isConferenceWindow {
-            print("🎯 Found conference buttons: microphone=\(microphoneButtonFound), camera=\(cameraButtonFound), chat=\(chatButtonFound), join=\(joinButtonFound)")
-            print("🎤 Microphone state: enable=\(enableMicrophoneButtonFound), disable=\(disableMicrophoneButtonFound), state=\(microphoneState?.description ?? "unknown")")
-        } else if joinButtonFound {
-            print("❌ Window filtered out - contains join button")
-        }
+        // Conference window detection completed
         
         return (isConference: isConferenceWindow, microphoneState: microphoneState)
     }
@@ -383,20 +363,15 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
             if allText.contains("включить микрофон") {
                 microphoneFound = true
                 enableMicrophoneFound = true
-                print("🎤 Found enable microphone button: '\(description)'")
             } else if allText.contains("выключить микрофон") {
                 microphoneFound = true
                 disableMicrophoneFound = true
-                print("🎤 Found disable microphone button: '\(description)'")
             } else if allText.contains("включить камеру") || allText.contains("выключить камеру") {
                 cameraFound = true
-                print("📹 Found camera button: '\(description)'")
             } else if allText.contains("чат") || allText.contains("chat") {
                 chatFound = true
-                print("💬 Found chat button: '\(description)'")
             } else if allText.contains("присоединиться") || allText.contains("join") {
                 joinFound = true
-                print("🚪 Found join button: '\(description)'")
             }
         }
         

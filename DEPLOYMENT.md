@@ -19,13 +19,16 @@ This guide covers how to build, package, and distribute Ktalk KeyboardMute for d
 # Clean previous builds
 rm -f KeyboardMute KeyboardMute.app
 
-# Build the application
-swiftc -o KeyboardMute KeyboardMute.swift -framework Cocoa -framework Carbon
+# Build the application using the app bundle script
+chmod +x build_app_bundle.sh
+./build_app_bundle.sh
 
-# Create app bundle
+# Or manually build and create app bundle
+swiftc -o KeyboardMute KeyboardMute.swift -framework Cocoa -framework Carbon
 mkdir -p KeyboardMute.app/Contents/MacOS
 cp KeyboardMute KeyboardMute.app/Contents/MacOS/
 cp KeyboardMute.entitlements KeyboardMute.app/Contents/
+cp AppIcon.icns KeyboardMute.app/Contents/Resources/
 ```
 
 #### 2. Xcode Build
@@ -66,11 +69,59 @@ Ensure `KeyboardMute.entitlements` includes necessary permissions:
 </plist>
 ```
 
+## 🎨 Icon Management
+
+### Creating App Icons
+
+The project includes automated tools for creating app icons from source images:
+
+#### 1. Using the Icon Creation Script
+
+```bash
+# Create icon from microphone PNG file
+chmod +x create_icon_from_mic.sh
+./create_icon_from_mic.sh
+```
+
+This script will:
+- Convert `free-icon-mic-772252.png` to all required macOS icon sizes
+- Generate `.icns` file for the app bundle
+- Update `Assets.xcassets` with all icon variants
+- Create backup of previous icon
+
+#### 2. Icon Requirements
+
+For proper macOS integration, ensure your source image:
+- Is at least 1024x1024 pixels
+- Has transparent background (PNG format)
+- Uses high contrast colors for visibility at small sizes
+- Follows Apple's Human Interface Guidelines
+
+#### 3. Manual Icon Creation
+
+If you need to create icons manually:
+
+```bash
+# Create iconset directory
+mkdir -p CustomIcon.iconset
+
+# Generate all required sizes
+sips -s format png -z 16 16 source.png --out CustomIcon.iconset/icon_16x16.png
+sips -s format png -z 32 32 source.png --out CustomIcon.iconset/icon_16x16@2x.png
+# ... (repeat for all sizes)
+
+# Create .icns file
+iconutil -c icns CustomIcon.iconset
+```
+
 ## 📦 Packaging
 
 ### 1. Create DMG Installer
 
 ```bash
+# Ensure app bundle is built with proper icon
+./build_app_bundle.sh
+
 # Create DMG
 hdiutil create -volname "KeyboardMute" -srcfolder KeyboardMute.app -ov -format UDZO KeyboardMute.dmg
 
