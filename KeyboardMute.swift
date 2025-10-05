@@ -7,25 +7,13 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     var eventHandler: EventHandlerRef?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        print("Starting KeyboardMute...")
-        
-        // Create status bar item
         createStatusItem()
-        
-        // Register global hotkey
         registerGlobalHotkey()
-        
-        // Hide app from Dock
         NSApp.setActivationPolicy(.accessory)
-        
-        // Setup event handling
         setupEventHandling()
-        
-        print("KeyboardMute started! Use Shift+Cmd+Z to toggle microphone.")
     }
     
     func setupEventHandling() {
-        // Create event handler for hotkeys
         _ = (1 << kEventClassKeyboard) | (1 << kEventClassApplication)
         InstallEventHandler(
             GetApplicationEventTarget(),
@@ -107,30 +95,15 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         )
         
         if status != noErr {
-            print("Failed to register hotkey: \(status)")
-        } else {
-            print("Hotkey Cmd+Shift+Z registered successfully")
+            // Hotkey registration failed
         }
     }
     
     @objc func toggleMicrophone() {
-        print("Toggling microphone...")
-        
         isMicrophoneMuted.toggle()
-        
-        // Update icon
         updateButtonIcon()
-        
-        // Show notification
-        showNotification()
-        
-        // Send M key to Ktalk conference window
         sendMToKtalkConference()
-        
-        // Show visual feedback
         showMicrophonePlate()
-        
-        print("Microphone toggled: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
     }
     
     func updateButtonIcon() {
@@ -149,7 +122,6 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     func createPanelPlate() {
         guard let mainScreen = NSScreen.main else { return }
         
-        print("🎤 Creating microphone plate: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
         
         // Dynamic size calculation based on monitor resolution
         let screenWidth = mainScreen.frame.width
@@ -243,22 +215,11 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         // Hide panel after 1.5 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             panel.close()
-            print("🎤 Microphone plate closed")
         }
     }
     
-    func showNotification() {
-        let notification = NSUserNotification()
-        notification.title = "KeyboardMute"
-        notification.informativeText = isMicrophoneMuted ? "Microphone Muted" : "Microphone Active"
-        notification.soundName = nil
-        
-        NSUserNotificationCenter.default.deliver(notification)
-    }
     
     func sendMToKtalkConference() {
-        print("🎤 Sending M key to Ktalk conference window...")
-        
         // Find all Ktalk applications
         let runningApps = NSWorkspace.shared.runningApplications
         let ktalkApps = runningApps.filter { app in
@@ -303,13 +264,11 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
                 if conferenceResult.isConference {
                     conferenceWindow = window
                     foundApp = app
-                    print("✅ Found conference window by control buttons in app: \(app.localizedName ?? "Unknown")")
                     
                     // Update microphone state based on found buttons
                     if let micState = conferenceResult.microphoneState {
                         isMicrophoneMuted = micState
                         updateButtonIcon()
-                        print("🎤 Microphone state updated: \(micState ? "MUTED" : "ACTIVE")")
                     }
                     break
                 }
@@ -453,8 +412,6 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     }
     
     @objc func quitApp() {
-        print("Quitting application...")
-        
         // Release resources
         if let eventHandler = eventHandler {
             UnregisterEventHotKey(eventHandler)
