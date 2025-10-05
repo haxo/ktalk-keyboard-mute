@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2024-12-19
+
+### Added
+- **App Icon:** Modern microphone icon with SF Symbol design
+- **Assets.xcassets Integration:** Proper icon support for all macOS contexts
+- **Visual Polish:** Professional app appearance in Finder, Dock, and Launchpad
+
+### Changed
+- **Code Cleanup:** Removed all debug print statements for cleaner operation
+- **Simplified Functions:** Streamlined code structure and removed unnecessary comments
+- **Performance:** Reduced console output for better performance
+- **User Experience:** Cleaner, more professional application behavior
+
+### Removed
+- **Notifications:** Completely removed notification system for silent operation
+- **Debug Output:** Eliminated all console logging for production use
+- **Verbose Comments:** Removed redundant code comments
+
 ## [1.3.0] - 2024-12-19
 
 ### Added
