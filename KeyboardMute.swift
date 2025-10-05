@@ -9,24 +9,23 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("Starting KeyboardMute...")
         
-        // Создаем элемент статус-бара
+        // Create status bar item
         createStatusItem()
         
-        // Регистрируем глобальные горячие клавиши
+        // Register global hotkey
         registerGlobalHotkey()
         
-        // Скрываем приложение из Dock
+        // Hide app from Dock
         NSApp.setActivationPolicy(.accessory)
         
-        // Устанавливаем обработчик событий
+        // Setup event handling
         setupEventHandling()
         
-        print("KeyboardMute запущен! Используйте Shift+Cmd+Z для переключения микрофона.")
+        print("KeyboardMute started! Use Shift+Cmd+Z to toggle microphone.")
     }
     
-    
     func setupEventHandling() {
-        // Создаем обработчик событий для горячих клавиш
+        // Create event handler for hotkeys
         _ = (1 << kEventClassKeyboard) | (1 << kEventClassApplication)
         InstallEventHandler(
             GetApplicationEventTarget(),
@@ -67,11 +66,11 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         if let button = statusItem?.button {
             updateButtonIcon()
-                button.action = #selector(toggleMicrophone)
-                button.target = self
+            button.action = #selector(toggleMicrophone)
+            button.target = self
         }
         
-        // Создаем меню
+        // Create menu
         let menu = createMenu()
         statusItem?.menu = menu
     }
@@ -79,7 +78,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     func createMenu() -> NSMenu {
         let menu = NSMenu()
         
-        let toggleItem = NSMenuItem(title: "Toggle Microphone (Cmd+Shift+M)", action: #selector(toggleMicrophone), keyEquivalent: "")
+        let toggleItem = NSMenuItem(title: "Toggle Microphone (Cmd+Shift+Z)", action: #selector(toggleMicrophone), keyEquivalent: "")
         toggleItem.target = self
         menu.addItem(toggleItem)
         
@@ -110,7 +109,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         if status != noErr {
             print("Failed to register hotkey: \(status)")
         } else {
-            print("Hotkey Cmd+Shift+M registered successfully")
+            print("Hotkey Cmd+Shift+Z registered successfully")
         }
     }
     
@@ -119,16 +118,16 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         isMicrophoneMuted.toggle()
         
-        // Обновляем иконку
+        // Update icon
         updateButtonIcon()
         
-        // Показываем плашку
+        // Show visual feedback
         showMicrophonePlate()
         
-        // Показываем уведомление
+        // Show notification
         showNotification()
         
-        // Отправляем клавишу M в окно конференции Толк
+        // Send M key to Ktalk conference window
         sendMToKtalkConference()
         
         print("Microphone toggled: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
@@ -136,110 +135,35 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     
     func updateButtonIcon() {
         if let button = statusItem?.button {
-            // Всегда показываем микрофон включен, независимо от состояния
+            // Always show microphone icon, regardless of state
             button.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "Microphone")
-            button.toolTip = nil
+            button.toolTip = isMicrophoneMuted ? "Microphone Muted" : "Microphone Active"
         }
     }
     
     func showMicrophonePlate() {
-        // Подход 2: NSPanel (тестируем)
         createPanelPlate()
-        
-        // Другие подходы:
-        // createVisualEffectPlate()  // Подход 1: NSVisualEffectView - segmentation fault
-        // createStatusBarPlate()     // Подход 4: NSStatusBar - не видно плашки
-        // createCoreAnimationPlate() // Подход 3: Core Animation - может вызывать ошибки
     }
     
-    func createVisualEffectPlate() {
-        guard let mainScreen = NSScreen.main else { return }
-        
-        // Создаем окно плашки
-        let plateWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        
-        // Настраиваем окно как системное уведомление
-        plateWindow.level = NSWindow.Level.floating
-        plateWindow.backgroundColor = NSColor.clear
-        plateWindow.isOpaque = false
-        plateWindow.hasShadow = true
-        plateWindow.ignoresMouseEvents = true
-        plateWindow.collectionBehavior = [.canJoinAllSpaces, .stationary]
-        plateWindow.animationBehavior = .utilityWindow
-        
-        // Центрируем на экране
-        let screenFrame = mainScreen.visibleFrame
-        let x = screenFrame.origin.x + (screenFrame.width - 100) / 2
-        let y = screenFrame.origin.y + (screenFrame.height - 100) / 2
-        plateWindow.setFrameOrigin(NSPoint(x: x, y: y))
-        
-        // Создаем NSVisualEffectView для размытого фона
-        let visualEffectView = NSVisualEffectView(frame: plateWindow.contentView!.bounds)
-        visualEffectView.material = .hudWindow
-        visualEffectView.blendingMode = .behindWindow
-        visualEffectView.state = .active
-        visualEffectView.wantsLayer = true
-        visualEffectView.layer?.cornerRadius = 20
-        plateWindow.contentView = visualEffectView
-        
-        // Создаем иконку микрофона
-        let iconView = NSImageView(frame: NSRect(x: 20, y: 20, width: 60, height: 60))
-        iconView.image = NSImage(systemSymbolName: isMicrophoneMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
-        iconView.image?.size = NSSize(width: 60, height: 60)
-        iconView.contentTintColor = NSColor.labelColor
-        visualEffectView.addSubview(iconView)
-        
-        // Показываем плашку
-        plateWindow.makeKeyAndOrderFront(nil)
-        
-        // Анимация появления
-        plateWindow.alphaValue = 0.0
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.15
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            plateWindow.animator().alphaValue = 1.0
-        })
-        
-        // Скрываем плашку через 1.2 секунды
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            NSAnimationContext.runAnimationGroup({ context in
-                context.duration = 0.2
-                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
-                plateWindow.animator().alphaValue = 0.0
-            }) {
-                plateWindow.close()
-            }
-        }
-    }
-    
-    // Подход 2: NSPanel
     func createPanelPlate() {
         guard let mainScreen = NSScreen.main else { return }
         
-        print("🎤 Creating NSPanel plate: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
+        print("🎤 Creating microphone plate: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
         
-        // Динамический расчет размеров на основе разрешения монитора
+        // Dynamic size calculation based on monitor resolution
         let screenWidth = mainScreen.frame.width
         let screenHeight = mainScreen.frame.height
         let minDimension = min(screenWidth, screenHeight)
         
-        // Плашка составляет 15% от меньшей стороны экрана
+        // Plate size is 15% of the smaller screen dimension
         let plateSize = minDimension * 0.15
         let plateWidth = plateSize
         let plateHeight = plateSize
         
-        // Иконка составляет 60% от размера плашки (уменьшена в 1.5 раза)
+        // Icon size is 60% of plate size
         let iconSize = plateSize * 0.6
         let iconWidth = iconSize
         let iconHeight = iconSize
-        
-        // Отступы составляют 5% от размера плашки
-        _ = plateSize * 0.05
         
         print("📐 Screen: \(Int(screenWidth))x\(Int(screenHeight)), Plate: \(Int(plateSize))x\(Int(plateSize)), Icon: \(Int(iconSize))x\(Int(iconSize))")
         
@@ -250,7 +174,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
             defer: false
         )
         
-        // Настройки панели для системного вида
+        // Panel settings for system-like appearance
         panel.level = NSWindow.Level.floating
         panel.backgroundColor = NSColor.clear
         panel.isOpaque = false
@@ -260,13 +184,13 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         panel.animationBehavior = .utilityWindow
         panel.hidesOnDeactivate = false
         
-        // Центрируем на экране
+        // Center on screen
         let screenFrame = mainScreen.visibleFrame
         let x = screenFrame.origin.x + (screenFrame.width - plateWidth) / 2
         let y = screenFrame.origin.y + (screenFrame.height - plateHeight) / 2
         panel.setFrameOrigin(NSPoint(x: x, y: y))
         
-        // Создаем контент только с размытым фоном (без черного фона)
+        // Create content with blur effect
         let blurEffect = NSVisualEffectView(frame: panel.contentView!.bounds)
         blurEffect.material = .hudWindow
         blurEffect.blendingMode = .behindWindow
@@ -279,145 +203,45 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         panel.contentView = blurEffect
         
-        // Создаем фиксированный контейнер для иконки
-        let iconContainerSize = min(iconWidth, iconHeight) // Квадратный контейнер
+        // Create fixed container for icon
+        let iconContainerSize = min(iconWidth, iconHeight) // Square container
         let iconX = (plateWidth - iconContainerSize) / 2
         let iconY = (plateHeight - iconContainerSize) / 2
         
-        // Создаем контейнер-родитель с фиксированным размером
+        // Create parent container with fixed size
         let iconContainer = NSView(frame: NSRect(x: iconX, y: iconY, width: iconContainerSize, height: iconContainerSize))
         iconContainer.wantsLayer = true
         iconContainer.layer?.backgroundColor = NSColor.clear.cgColor
         
-        // Создаем NSImageView внутри контейнера
+        // Create NSImageView inside container
         let iconView = NSImageView(frame: NSRect(x: 0, y: 0, width: iconContainerSize, height: iconContainerSize))
         iconView.imageScaling = .scaleProportionallyUpOrDown
         iconView.imageAlignment = .alignCenter
         
-        // Создаем иконку с фиксированным размером (всегда микрофон включен)
+        // Create icon with fixed size (always show microphone)
         let micImage = NSImage(systemSymbolName: "mic", accessibilityDescription: nil)
         
-        // Устанавливаем изображение напрямую
+        // Set image directly
         iconView.image = micImage
-        iconView.contentTintColor = NSColor.red
+        iconView.contentTintColor = isMicrophoneMuted ? NSColor.systemRed : NSColor.systemGreen
         iconView.wantsLayer = true
         iconView.layer?.shouldRasterize = true
         iconView.layer?.rasterizationScale = NSScreen.main?.backingScaleFactor ?? 1.0
         
-        // Добавляем iconView в контейнер, а контейнер в blurEffect
+        // Add iconView to container, container to blurEffect
         iconContainer.addSubview(iconView)
         blurEffect.addSubview(iconContainer)
         
-        // Показываем панель
+        // Show panel
         panel.makeKeyAndOrderFront(nil)
         
-        // Простое появление без анимации
+        // Simple appearance without animation
         panel.alphaValue = 1.0
         
-        // Скрываем панель через 1.5 секунды
+        // Hide panel after 1.5 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             panel.close()
-            print("🎤 NSPanel plate closed")
-        }
-    }
-    
-    // Подход 3: Core Animation
-    func createCoreAnimationPlate() {
-        guard let mainScreen = NSScreen.main else { return }
-        
-        let plateWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
-                styleMask: [.borderless],
-                backing: .buffered,
-                defer: false
-            )
-            
-        plateWindow.level = NSWindow.Level.floating
-        plateWindow.backgroundColor = NSColor.clear
-        plateWindow.isOpaque = false
-        plateWindow.hasShadow = true
-        plateWindow.ignoresMouseEvents = true
-        
-        // Центрируем
-        let screenFrame = mainScreen.visibleFrame
-        let x = screenFrame.origin.x + (screenFrame.width - 100) / 2
-        let y = screenFrame.origin.y + (screenFrame.height - 100) / 2
-        plateWindow.setFrameOrigin(NSPoint(x: x, y: y))
-        
-        // Контент с Core Animation
-        let contentView = NSView(frame: plateWindow.contentView!.bounds)
-        contentView.wantsLayer = true
-        contentView.layer?.cornerRadius = 20
-        contentView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.8).cgColor
-        
-        // Анимация масштабирования
-        let scaleAnimation = CABasicAnimation(keyPath: "transform.scale")
-        scaleAnimation.fromValue = 0.5
-        scaleAnimation.toValue = 1.0
-        scaleAnimation.duration = 0.2
-        scaleAnimation.timingFunction = CAMediaTimingFunction(name: .easeOut)
-        contentView.layer?.add(scaleAnimation, forKey: "scale")
-        
-        plateWindow.contentView = contentView
-        
-        // Иконка
-        let iconView = NSImageView(frame: NSRect(x: 20, y: 20, width: 60, height: 60))
-        iconView.image = NSImage(systemSymbolName: isMicrophoneMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
-        iconView.image?.size = NSSize(width: 60, height: 60)
-        iconView.contentTintColor = NSColor.white
-        contentView.addSubview(iconView)
-        
-        plateWindow.makeKeyAndOrderFront(nil)
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            plateWindow.close()
-        }
-    }
-    
-    // Подход 4: NSStatusBar временное уведомление
-    func createStatusBarPlate() {
-        // Создаем заметную плашку в статус-баре
-        if let button = statusItem?.button {
-            let originalImage = button.image
-            let originalTint = button.contentTintColor
-            
-            print("🎤 Creating plate: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
-            
-            // Большая иконка с ярким цветом
-            let plateIcon = NSImage(systemSymbolName: isMicrophoneMuted ? "mic.slash" : "mic", accessibilityDescription: nil)
-            plateIcon?.size = NSSize(width: 40, height: 40)
-            button.image = plateIcon
-            button.contentTintColor = isMicrophoneMuted ? NSColor.systemRed : NSColor.systemGreen
-            
-            // Простая анимация пульсации
-            var pulseCount = 0
-            let maxPulses = 6
-            
-            func pulse() {
-                if pulseCount < maxPulses {
-                    NSAnimationContext.runAnimationGroup({ context in
-                        context.duration = 0.15
-                        button.animator().alphaValue = 0.3
-                    }) {
-                        NSAnimationContext.runAnimationGroup({ context in
-                            context.duration = 0.15
-                            button.animator().alphaValue = 1.0
-                        }) {
-                            pulseCount += 1
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                pulse()
-                            }
-                        }
-                    }
-                } else {
-                    // Возвращаем оригинальную иконку
-                    button.image = originalImage
-                    button.contentTintColor = originalTint
-                    print("🎤 Plate animation completed")
-                }
-            }
-            
-            pulse()
+            print("🎤 Microphone plate closed")
         }
     }
     
@@ -431,9 +255,9 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     }
     
     func sendMToKtalkConference() {
-        print("🎤 Отправка клавиши M в окно конференции Толк...")
+        print("🎤 Sending M key to Ktalk conference window...")
         
-        // Находим приложение Толк
+        // Find Ktalk application
         let runningApps = NSWorkspace.shared.runningApplications
         let ktalkApp = runningApps.first { app in
             let bundleId = app.bundleIdentifier ?? ""
@@ -445,74 +269,74 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         }
         
         guard let app = ktalkApp else {
-            print("❌ Приложение Толк не найдено")
+            print("❌ Ktalk application not found")
             return
         }
         
-        print("✅ Найдено приложение Толк: \(app.localizedName ?? "Unknown") (PID: \(app.processIdentifier))")
+        print("✅ Found Ktalk application: \(app.localizedName ?? "Unknown") (PID: \(app.processIdentifier))")
         
-        // Получаем окна приложения
+        // Get application windows
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         var windowsRef: CFTypeRef?
         let windowsResult = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
         
         guard windowsResult == .success, let windows = windowsRef as? [AXUIElement] else {
-            print("❌ Не удалось получить окна приложения")
+            print("❌ Could not get application windows")
             return
         }
         
-        // Ищем окно конференции по уникальным признакам
+        // Find conference window by unique features
         var conferenceWindow: AXUIElement?
         for window in windows {
             var titleRef: CFTypeRef?
             let titleResult = AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleRef)
             let title = (titleResult == .success) ? (titleRef as? String ?? "") : ""
             
-            print("🔍 Проверяем окно: \"\(title)\"")
+            print("🔍 Checking window: \"\(title)\"")
             
-            // Проверяем наличие кнопок управления конференцией
+            // Check for conference control buttons
             if hasConferenceControlButtons(in: window) {
                 conferenceWindow = window
-                print("✅ Найдено окно конференции по кнопкам управления: \"\(title)\"")
+                print("✅ Found conference window by control buttons: \"\(title)\"")
                 break
             }
         }
         
         guard let window = conferenceWindow else {
-            print("❌ Окно конференции не найдено")
+            print("❌ Conference window not found")
             return
         }
         
-        // Поднимаем окно наверх
-        print("🔄 Поднимаем окно конференции наверх...")
+        // Bring window to front
+        print("🔄 Bringing conference window to front...")
         AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, true as CFTypeRef)
         
-        // Активируем приложение
+        // Activate application
         app.activate(options: [])
         
-        // Ждем полсекунды
-        print("⏱️ Ожидание 0.5 секунды...")
-        usleep(500000) // 0.5 секунды
+        // Wait half a second
+        print("⏱️ Waiting 0.5 seconds...")
+        usleep(500000) // 0.5 seconds
         
-        // Отправляем клавишу M
-        print("⌨️ Отправка клавиши M в Толк...")
+        // Send M key
+        print("⌨️ Sending M key to Ktalk...")
         let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: 46, keyDown: true) // 46 = M key
         let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: 46, keyDown: false)
         
         guard let downEvent = keyDownEvent, let upEvent = keyUpEvent else {
-            print("❌ Не удалось создать события клавиатуры")
+            print("❌ Could not create keyboard events")
             return
         }
         
-        // Отправляем просто клавишу M без модификаторов
+        // Send plain M key without modifiers
         downEvent.flags = []
         upEvent.flags = []
         
         downEvent.post(tap: .cghidEventTap)
-        usleep(100000) // 0.1 секунды между нажатием и отпусканием
+        usleep(100000) // 0.1 seconds between press and release
         upEvent.post(tap: .cghidEventTap)
         
-        print("✅ Клавиша M отправлена в окно конференции Толк")
+        print("✅ M key sent to Ktalk conference window")
     }
     
     func hasConferenceControlButtons(in window: AXUIElement) -> Bool {
@@ -520,63 +344,63 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         var cameraButtonFound = false
         var recordingButtonFound = false
         
-        // Рекурсивно ищем кнопки управления конференцией
+        // Recursively search for conference control buttons
         findConferenceButtons(in: window, microphoneFound: &microphoneButtonFound, cameraFound: &cameraButtonFound, recordingFound: &recordingButtonFound)
         
-        // Окно конференции должно иметь кнопки микрофона И камеры
+        // Conference window should have both microphone AND camera buttons
         let isConferenceWindow = microphoneButtonFound && cameraButtonFound
         
         if isConferenceWindow {
-            print("🎯 Найдены кнопки конференции: микрофон=\(microphoneButtonFound), камера=\(cameraButtonFound), запись=\(recordingButtonFound)")
+            print("🎯 Found conference buttons: microphone=\(microphoneButtonFound), camera=\(cameraButtonFound), recording=\(recordingButtonFound)")
         }
         
         return isConferenceWindow
     }
     
     func findConferenceButtons(in element: AXUIElement, microphoneFound: inout Bool, cameraFound: inout Bool, recordingFound: inout Bool) {
-        // Получаем роль элемента
+        // Get element role
         var roleRef: CFTypeRef?
         let roleResult = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
         let role = (roleResult == .success) ? (roleRef as? String ?? "unknown") : "unknown"
         
         if role == "AXButton" {
-            // Получаем описание элемента
+            // Get element description
             var descriptionRef: CFTypeRef?
             let descResult = AXUIElementCopyAttributeValue(element, kAXDescriptionAttribute as CFString, &descriptionRef)
             let description = (descResult == .success) ? (descriptionRef as? String ?? "") : ""
             
-            // Получаем help (tooltip) элемента
+            // Get help (tooltip) element
             var helpRef: CFTypeRef?
             let helpResult = AXUIElementCopyAttributeValue(element, kAXHelpAttribute as CFString, &helpRef)
             let help = (helpResult == .success) ? (helpRef as? String ?? "") : ""
             
-            // Получаем значение элемента
+            // Get element value
             var valueRef: CFTypeRef?
             let valueResult = AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef)
             let value = (valueResult == .success) ? (valueRef as? String ?? "") : ""
             
             let allText = "\(description) \(help) \(value)".lowercased()
             
-            // Проверяем на кнопки управления конференцией
+            // Check for conference control buttons
             if allText.contains("микрофон") || allText.contains("microphone") || allText.contains("mute") || allText.contains("unmute") {
                 microphoneFound = true
-                print("🎤 Найдена кнопка микрофона: '\(description)'")
+                print("🎤 Found microphone button: '\(description)'")
             } else if allText.contains("камер") || allText.contains("camera") || allText.contains("video") {
                 cameraFound = true
-                print("📹 Найдена кнопка камеры: '\(description)'")
+                print("📹 Found camera button: '\(description)'")
             } else if allText.contains("запис") || allText.contains("record") || allText.contains("recording") {
                 recordingFound = true
-                print("🎯 Найдена кнопка записи: '\(description)'")
+                print("🎯 Found recording button: '\(description)'")
             }
         }
         
-        // Рекурсивно ищем в дочерних элементах
+        // Recursively search in child elements
         var childrenRef: CFTypeRef?
         let childrenResult = AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef)
         
         if childrenResult == .success, let children = childrenRef as? [AXUIElement] {
             for child in children {
-                findConferenceButtons(in: child, microphoneFound: &microphoneFound, cameraFound: &cameraFound, recordingFound: &recordingFound)
+                findConferenceButtons(in: child, microphoneFound: &microphoneButtonFound, cameraFound: &cameraButtonFound, recordingFound: &recordingButtonFound)
             }
         }
     }
@@ -584,7 +408,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     @objc func quitApp() {
         print("Quitting application...")
         
-        // Освобождаем ресурсы
+        // Release resources
         if let eventHandler = eventHandler {
             UnregisterEventHotKey(eventHandler)
         }
@@ -599,9 +423,8 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     }
 }
 
-// Главная функция
+// Main function
 let app = NSApplication.shared
 let delegate = KeyboardMute()
 app.delegate = delegate
 app.run()
-

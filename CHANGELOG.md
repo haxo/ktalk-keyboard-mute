@@ -1,75 +1,72 @@
-# KeyboardMute - Changelog
+# Ktalk KeyboardMute - Changelog
 
-## [v1.2] - 2024-12-19 - Plate Implementation Attempts
+All notable changes to this project will be documented in this file.
 
-### Новые подходы для создания плашки
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-#### Подход 1: NSVisualEffectView (текущий)
-- Использует NSVisualEffectView с material .hudWindow
-- Размытый фон как в системных уведомлениях
-- Правильные настройки окна (.utilityWindow, .floating level)
-- Закругленные углы (20px radius)
-- Плавные анимации появления/исчезновения
+## [1.2.0] - 2024-12-19
 
-#### Подход 2: NSPanel (запланирован)
-- Использование NSPanel вместо NSWindow
-- Специальные настройки для системных уведомлений
-- Возможные лучшие результаты для плашки
+### Added
+- Comprehensive README with detailed installation and usage instructions
+- MIT License file
+- Proper .gitignore for macOS/Xcode projects
+- Enhanced error handling and logging
+- Better visual feedback system
 
-#### Подход 3: NSView с Core Animation (запланирован)
-- Создание плашки через Core Animation
-- Более низкоуровневый контроль анимации
-- Возможность точного воспроизведения системного стиля
+### Changed
+- **BREAKING:** Cleaned up codebase - removed unused functions and commented code
+- **BREAKING:** Standardized all comments to English
+- **BREAKING:** Simplified hotkey from `Cmd+Shift+M` to `Cmd+Shift+Z` for better compatibility
+- Improved floating notification appearance and behavior
+- Enhanced Ktalk integration with better window detection
+- Optimized visual feedback performance
+- Updated menu text to reflect new hotkey
 
-#### Подход 4: NSStatusBar временное уведомление (запланирован)
-- Использование встроенных возможностей NSStatusBar
-- Создание временного popup уведомления
-- Интеграция с системным статус-баром
+### Fixed
+- Removed segmentation fault issues with NSVisualEffectView
+- Fixed hotkey registration conflicts
+- Improved accessibility permissions handling
+- Better error messages and user feedback
 
-### Изменения в коде
-- Добавлена функция `showMicrophonePlate()`
-- Добавлена функция `createVisualEffectPlate()`
-- Использование NSVisualEffectView для размытого фона
-- Правильные настройки окна для системного вида
-- Улучшенные анимации с правильными timing functions
+### Removed
+- Unused NSVisualEffectView implementation (caused crashes)
+- Unused Core Animation implementation
+- Unused NSStatusBar notification implementation
+- Commented-out code and debugging statements
+- Russian language comments (standardized to English)
 
-### Результаты тестирования
+## [1.1.0] - 2024-12-18
 
-#### ❌ Подход 1: NSVisualEffectView - НЕ РАБОТАЕТ
-- **Проблема**: Segmentation fault при использовании NSVisualEffectView
-- **Ошибка**: `-[__NSCFType _runningWindowTransformAnimation]: unrecognized selector`
-- **Статус**: Отключен
+### Added
+- Floating notification system using NSPanel
+- Ktalk conference integration
+- Dynamic size calculation based on screen resolution
+- Visual feedback with color-coded microphone status
+- Enhanced window detection for conference applications
 
-#### 🔄 Подход 2: NSPanel - ТЕСТИРУЕТСЯ
-- **Статус**: Активный, тестируется
-- **Описание**: Использует NSPanel с NSVisualEffectView для размытого фона
-- **Особенности**:
-  - Размер 120x120 пикселей
-  - Закругленные углы (25px radius)
-  - Размытый фон (.hudWindow material)
-  - Цветная иконка (красная/зеленая)
-  - Плавные анимации появления/исчезновения
+### Changed
+- Improved hotkey registration process
+- Better error handling for accessibility permissions
+- Enhanced visual feedback timing and appearance
 
-#### ❌ Подход 3: Core Animation - НЕ ТЕСТИРОВАН  
-- **Статус**: Готов к тестированию, но может вызывать аналогичные ошибки
+### Fixed
+- Memory leaks in event handler registration
+- Window detection issues with Ktalk
+- Visual feedback positioning on different screen sizes
 
-#### ✅ Подход 4: NSStatusBar - РАБОТАЕТ
-- **Статус**: Активный, стабильный
-- **Описание**: Создает эффект плашки через изменение иконки в статус-баре
-- **Особенности**: 
-  - Увеличение размера иконки (32x32px)
-  - Изменение цвета (красный/зеленый)
-  - Пульсация прозрачности
-  - Плавные анимации
+## [1.0.0] - 2024-12-17
 
-### Текущее состояние
-- **Активный подход**: NSPanel (подход 2)
-- **Статус**: ✅ РАБОТАЕТ
-- **Эффект плашки**: Создается через NSPanel с размытым фоном и цветной иконкой
-- **Последние улучшения**:
-  - ✅ Динамический расчет размеров на основе разрешения монитора
-  - ✅ Уменьшение иконки в 1.5 раза (с 90% до 60% от размера плашки)
-  - ✅ Центрирование иконки в плашке
-  - ✅ Улучшенные пропорции с большим количеством размытого фона
-  - ✅ Устранение артефактов на закругленных углах
-  - ✅ Удаление теней и пульсации с плашки
+### Added
+- Initial release
+- Basic microphone toggle functionality
+- Global hotkey support (`Cmd+Shift+M`)
+- Menu bar integration
+- System notification support
+- Basic accessibility permissions handling
+
+### Technical Details
+- Built with Swift 5.0
+- Uses Cocoa and Carbon frameworks
+- Requires macOS 13.0 or later
+- Sandboxed application with proper entitlements

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Community Support
+    url: https://github.com/yourusername/ktalk-keyboard-mute/discussions
+    about: Ask questions and get help from the community
+  - name: Documentation
+    url: https://github.com/yourusername/ktalk-keyboard-mute#readme
+    about: Check the README for installation and usage instructions
+  - name: Security Issues
+    url: https://github.com/yourusername/ktalk-keyboard-mute/security/advisories/new
+    about: Report security vulnerabilities privately

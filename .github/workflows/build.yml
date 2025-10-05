@@ -1,0 +1,41 @@
+name: Build and Test Ktalk KeyboardMute
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+    
+    - name: Build Ktalk KeyboardMute
+      run: |
+        chmod +x build.sh
+        swiftc -o KeyboardMute KeyboardMute.swift -framework Cocoa -framework Carbon
+    
+    - name: Test compilation
+      run: |
+        if [ -f "KeyboardMute" ]; then
+          echo "✅ Build successful"
+          file KeyboardMute
+        else
+          echo "❌ Build failed"
+          exit 1
+        fi
+    
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Ktalk-KeyboardMute-binary
+        path: KeyboardMute
+        retention-days: 7
