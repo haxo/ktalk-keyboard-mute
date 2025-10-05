@@ -1,14 +1,15 @@
 # Ktalk KeyboardMute
 
-A simple macOS application that allows you to toggle your microphone on/off using global hotkeys. Perfect for quickly muting during video calls, conferences, or any situation where you need instant microphone control.
+A smart macOS application that provides instant microphone control for Ktalk video conferences. Features intelligent conference window detection and automatic state synchronization.
 
 ## ✨ Features
 
-- 🎤 **One-click microphone toggle** - Instantly mute/unmute your microphone
+- 🎤 **Smart microphone toggle** - Instantly mute/unmute your microphone in Ktalk
 - ⌨️ **Global hotkey support** - Use `Cmd+Shift+Z` from anywhere in the system
-- 🔔 **Visual feedback** - Beautiful floating notification shows microphone status
+- 🎯 **Intelligent conference detection** - Automatically finds Ktalk conference windows
+- 🔄 **State synchronization** - Reads microphone state from Ktalk interface
+- 🎨 **Visual feedback** - Status bar icon and floating notification show microphone status
 - 📱 **Menu bar integration** - Easy access via system tray icon
-- 🎯 **Smart conference detection** - Automatically sends mute commands to Ktalk conference windows
 - 🔒 **Privacy focused** - No data collection, runs locally on your machine
 
 ## 🚀 Installation
@@ -56,12 +57,24 @@ swiftc -o KeyboardMute KeyboardMute.swift -framework Cocoa -framework Carbon
 
 ## 🎯 Ktalk Integration
 
-KeyboardMute includes special integration with Ktalk conference software:
+KeyboardMute features intelligent integration with Ktalk conference software:
 
-- **Automatic Detection:** Finds Ktalk conference windows automatically
-- **Smart Button Detection:** Identifies conference control buttons
-- **Seamless Integration:** Sends mute commands directly to the conference window
-- **Multi-language Support:** Works with both Russian and English Ktalk interfaces
+### 🔍 Smart Conference Detection
+- **Window Analysis:** Scans all Ktalk application windows
+- **Button Recognition:** Identifies conference control buttons (microphone, camera, chat)
+- **State Reading:** Determines current microphone state from interface buttons
+- **Filtering:** Excludes non-conference windows (like "Join" dialogs)
+
+### 🎤 State Synchronization
+- **"Включить микрофон" button** → Microphone is OFF → Blue icon, no strikethrough
+- **"Выключить микрофон" button** → Microphone is ON → Red strikethrough icon
+- **Automatic Updates:** State updates when conference window is found
+- **Visual Feedback:** Status bar icon and floating notification reflect current state
+
+### ⌨️ Hotkey Integration
+- **Global Hotkey:** `Cmd+Shift+Z` works from anywhere
+- **Smart Toggle:** Sends M key to Ktalk conference window
+- **State Sync:** Updates interface state after toggle
 
 ## ⚙️ Configuration
 

@@ -121,22 +121,23 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         // Update icon
         updateButtonIcon()
         
-        // Show visual feedback
-        showMicrophonePlate()
-        
         // Show notification
         showNotification()
         
         // Send M key to Ktalk conference window
         sendMToKtalkConference()
         
+        // Show visual feedback
+        showMicrophonePlate()
+        
         print("Microphone toggled: \(isMicrophoneMuted ? "MUTED" : "ACTIVE")")
     }
     
     func updateButtonIcon() {
         if let button = statusItem?.button {
-            // Always show microphone icon, regardless of state
-            button.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "Microphone")
+            // Show microphone icon with strikethrough when muted
+            let iconName = isMicrophoneMuted ? "mic.slash" : "mic"
+            button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "Microphone")
             button.toolTip = isMicrophoneMuted ? "Microphone Muted" : "Microphone Active"
         }
     }
@@ -218,12 +219,13 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         iconView.imageScaling = .scaleProportionallyUpOrDown
         iconView.imageAlignment = .alignCenter
         
-        // Create icon with fixed size (always show microphone)
-        let micImage = NSImage(systemSymbolName: "mic", accessibilityDescription: nil)
+        // Create icon with fixed size - show crossed out microphone when muted
+        let iconName = isMicrophoneMuted ? "mic.slash" : "mic"
+        let micImage = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)
         
         // Set image directly
         iconView.image = micImage
-        iconView.contentTintColor = isMicrophoneMuted ? NSColor.systemRed : NSColor.systemGreen
+        iconView.contentTintColor = isMicrophoneMuted ? NSColor.systemRed : NSColor.systemBlue
         iconView.wantsLayer = true
         iconView.layer?.shouldRasterize = true
         iconView.layer?.rasterizationScale = NSScreen.main?.backingScaleFactor ?? 1.0
@@ -257,9 +259,9 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
     func sendMToKtalkConference() {
         print("🎤 Sending M key to Ktalk conference window...")
         
-        // Find Ktalk application
+        // Find all Ktalk applications
         let runningApps = NSWorkspace.shared.runningApplications
-        let ktalkApp = runningApps.first { app in
+        let ktalkApps = runningApps.filter { app in
             let bundleId = app.bundleIdentifier ?? ""
             let appName = app.localizedName ?? ""
             return bundleId.lowercased().contains("ktalk") || 
@@ -268,42 +270,58 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
                    appName.lowercased().contains("ktalk")
         }
         
-        guard let app = ktalkApp else {
+        guard !ktalkApps.isEmpty else {
             print("❌ Ktalk application not found")
             return
         }
         
-        print("✅ Found Ktalk application: \(app.localizedName ?? "Unknown") (PID: \(app.processIdentifier))")
+        print("✅ Found \(ktalkApps.count) Ktalk application(s)")
         
-        // Get application windows
-        let appElement = AXUIElementCreateApplication(app.processIdentifier)
-        var windowsRef: CFTypeRef?
-        let windowsResult = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
-        
-        guard windowsResult == .success, let windows = windowsRef as? [AXUIElement] else {
-            print("❌ Could not get application windows")
-            return
-        }
-        
-        // Find conference window by unique features
+        // Check all Ktalk applications for conference windows
         var conferenceWindow: AXUIElement?
-        for window in windows {
-            var titleRef: CFTypeRef?
-            let titleResult = AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleRef)
-            let title = (titleResult == .success) ? (titleRef as? String ?? "") : ""
+        var foundApp: NSRunningApplication?
+        
+        for app in ktalkApps {
+            print("🔍 Checking app: \(app.localizedName ?? "Unknown") (PID: \(app.processIdentifier))")
             
-            print("🔍 Checking window: \"\(title)\"")
+            // Get application windows
+            let appElement = AXUIElementCreateApplication(app.processIdentifier)
+            var windowsRef: CFTypeRef?
+            let windowsResult = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
             
-            // Check for conference control buttons
-            if hasConferenceControlButtons(in: window) {
-                conferenceWindow = window
-                print("✅ Found conference window by control buttons: \"\(title)\"")
+            guard windowsResult == .success, let windows = windowsRef as? [AXUIElement] else {
+                print("❌ Could not get windows for app: \(app.localizedName ?? "Unknown")")
+                continue
+            }
+            
+            // Check each window for conference control buttons
+            for window in windows {
+                print("🔍 Checking window...")
+                
+                // Check for conference control buttons
+                let conferenceResult = hasConferenceControlButtons(in: window)
+                if conferenceResult.isConference {
+                    conferenceWindow = window
+                    foundApp = app
+                    print("✅ Found conference window by control buttons in app: \(app.localizedName ?? "Unknown")")
+                    
+                    // Update microphone state based on found buttons
+                    if let micState = conferenceResult.microphoneState {
+                        isMicrophoneMuted = micState
+                        updateButtonIcon()
+                        print("🎤 Microphone state updated: \(micState ? "MUTED" : "ACTIVE")")
+                    }
+                    break
+                }
+            }
+            
+            if conferenceWindow != nil {
                 break
             }
         }
         
-        guard let window = conferenceWindow else {
-            print("❌ Conference window not found")
+        guard let window = conferenceWindow, let app = foundApp else {
+            print("❌ Conference window not found in any Ktalk application")
             return
         }
         
@@ -339,25 +357,41 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         print("✅ M key sent to Ktalk conference window")
     }
     
-    func hasConferenceControlButtons(in window: AXUIElement) -> Bool {
+    func hasConferenceControlButtons(in window: AXUIElement) -> (isConference: Bool, microphoneState: Bool?) {
         var microphoneButtonFound = false
         var cameraButtonFound = false
-        var recordingButtonFound = false
+        var chatButtonFound = false
+        var joinButtonFound = false
+        var enableMicrophoneButtonFound = false
+        var disableMicrophoneButtonFound = false
         
         // Recursively search for conference control buttons
-        findConferenceButtons(in: window, microphoneFound: &microphoneButtonFound, cameraFound: &cameraButtonFound, recordingFound: &recordingButtonFound)
+        findConferenceButtons(in: window, microphoneFound: &microphoneButtonFound, cameraFound: &cameraButtonFound, chatFound: &chatButtonFound, joinFound: &joinButtonFound, enableMicrophoneFound: &enableMicrophoneButtonFound, disableMicrophoneFound: &disableMicrophoneButtonFound)
         
-        // Conference window should have both microphone AND camera buttons
-        let isConferenceWindow = microphoneButtonFound && cameraButtonFound
+        // Conference window should have microphone AND camera AND chat buttons, but NOT join button
+        let isConferenceWindow = microphoneButtonFound && cameraButtonFound && chatButtonFound && !joinButtonFound
         
+        // Determine microphone state based on found buttons
+        var microphoneState: Bool? = nil
         if isConferenceWindow {
-            print("🎯 Found conference buttons: microphone=\(microphoneButtonFound), camera=\(cameraButtonFound), recording=\(recordingButtonFound)")
+            if enableMicrophoneButtonFound && !disableMicrophoneButtonFound {
+                microphoneState = false // Microphone is OFF (need to enable)
+            } else if disableMicrophoneButtonFound && !enableMicrophoneButtonFound {
+                microphoneState = true // Microphone is ON (need to disable)
+            }
         }
         
-        return isConferenceWindow
+        if isConferenceWindow {
+            print("🎯 Found conference buttons: microphone=\(microphoneButtonFound), camera=\(cameraButtonFound), chat=\(chatButtonFound), join=\(joinButtonFound)")
+            print("🎤 Microphone state: enable=\(enableMicrophoneButtonFound), disable=\(disableMicrophoneButtonFound), state=\(microphoneState?.description ?? "unknown")")
+        } else if joinButtonFound {
+            print("❌ Window filtered out - contains join button")
+        }
+        
+        return (isConference: isConferenceWindow, microphoneState: microphoneState)
     }
     
-    func findConferenceButtons(in element: AXUIElement, microphoneFound: inout Bool, cameraFound: inout Bool, recordingFound: inout Bool) {
+    func findConferenceButtons(in element: AXUIElement, microphoneFound: inout Bool, cameraFound: inout Bool, chatFound: inout Bool, joinFound: inout Bool, enableMicrophoneFound: inout Bool, disableMicrophoneFound: inout Bool) {
         // Get element role
         var roleRef: CFTypeRef?
         let roleResult = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
@@ -379,18 +413,31 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
             let valueResult = AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef)
             let value = (valueResult == .success) ? (valueRef as? String ?? "") : ""
             
+            // Get element enabled state (not used but kept for future use)
+            var enabledRef: CFTypeRef?
+            let enabledResult = AXUIElementCopyAttributeValue(element, kAXEnabledAttribute as CFString, &enabledRef)
+            let _ = (enabledResult == .success) ? (enabledRef as? Bool ?? true) : true
+            
             let allText = "\(description) \(help) \(value)".lowercased()
             
             // Check for conference control buttons
-            if allText.contains("микрофон") || allText.contains("microphone") || allText.contains("mute") || allText.contains("unmute") {
+            if allText.contains("включить микрофон") {
                 microphoneFound = true
-                print("🎤 Found microphone button: '\(description)'")
-            } else if allText.contains("камер") || allText.contains("camera") || allText.contains("video") {
+                enableMicrophoneFound = true
+                print("🎤 Found enable microphone button: '\(description)'")
+            } else if allText.contains("выключить микрофон") {
+                microphoneFound = true
+                disableMicrophoneFound = true
+                print("🎤 Found disable microphone button: '\(description)'")
+            } else if allText.contains("включить камеру") || allText.contains("выключить камеру") {
                 cameraFound = true
                 print("📹 Found camera button: '\(description)'")
-            } else if allText.contains("запис") || allText.contains("record") || allText.contains("recording") {
-                recordingFound = true
-                print("🎯 Found recording button: '\(description)'")
+            } else if allText.contains("чат") || allText.contains("chat") {
+                chatFound = true
+                print("💬 Found chat button: '\(description)'")
+            } else if allText.contains("присоединиться") || allText.contains("join") {
+                joinFound = true
+                print("🚪 Found join button: '\(description)'")
             }
         }
         
@@ -400,7 +447,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         if childrenResult == .success, let children = childrenRef as? [AXUIElement] {
             for child in children {
-                findConferenceButtons(in: child, microphoneFound: &microphoneButtonFound, cameraFound: &cameraButtonFound, recordingFound: &recordingButtonFound)
+                findConferenceButtons(in: child, microphoneFound: &microphoneFound, cameraFound: &cameraFound, chatFound: &chatFound, joinFound: &joinFound, enableMicrophoneFound: &enableMicrophoneFound, disableMicrophoneFound: &disableMicrophoneFound)
             }
         }
     }
@@ -415,6 +462,7 @@ class KeyboardMute: NSObject, NSApplicationDelegate {
         
         NSApplication.shared.terminate(nil)
     }
+    
     
     deinit {
         if let eventHandler = eventHandler {

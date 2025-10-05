@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2024-12-19
+
+### Added
+- **Smart State Detection:** Automatically reads microphone state from Ktalk interface buttons
+- **Intelligent Conference Detection:** Finds conference windows by analyzing control buttons
+- **State Synchronization:** Updates status bar icon based on actual microphone state
+- **Enhanced Button Recognition:** Detects "Включить микрофон" and "Выключить микрофон" buttons
+- **Conference Window Filtering:** Excludes non-conference windows (like "Join" dialogs)
+
+### Changed
+- **BREAKING:** Removed periodic synchronization timer for cleaner operation
+- **BREAKING:** State detection now based on interface buttons rather than manual toggle
+- **BREAKING:** Simplified codebase by removing complex sync logic
+- **Improved:** Status bar icon now accurately reflects microphone state
+- **Improved:** Floating notification shows correct microphone state
+
+### Fixed
+- Status bar icon no longer shows incorrect state
+- Microphone state properly synchronized with Ktalk interface
+- Removed code complexity and potential race conditions
+
 ## [1.2.0] - 2024-12-19
 
 ### Added
