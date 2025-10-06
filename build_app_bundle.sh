@@ -34,7 +34,7 @@ cp build/KeyboardMute KeyboardMute.app/Contents/MacOS/
 cp -r Assets.xcassets/* KeyboardMute.app/Contents/Resources/Assets.xcassets/
 
 # Copy .icns icon
-cp AppIcon.icns KeyboardMute.app/Contents/Resources/
+cp MicAppIcon.icns KeyboardMute.app/Contents/Resources/AppIcon.icns
 
 # Create Info.plist
 echo "📝 Creating Info.plist..."
