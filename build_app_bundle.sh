@@ -52,9 +52,9 @@ cat > KeyboardMute.app/Contents/Info.plist << 'EOF'
     <key>CFBundleDisplayName</key>
     <string>Ktalk KeyboardMute</string>
     <key>CFBundleVersion</key>
-    <string>1.4.0</string>
+    <string>1.6.0</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.4.0</string>
+    <string>1.6.0</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleSignature</key>
